@@ -46,6 +46,51 @@ lemma newtonStep_ge_sqrt
   rw [hid]
   positivity
 
+
+-- Lemma 4: Every iterate after the first is at least sqrt(a).
+lemma newtonSeq_ge_sqrt
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀)
+    (n : ℕ) :
+    Real.sqrt a ≤ newtonSeq a x₀ (n + 1) := by
+  change Real.sqrt a ≤
+    newtonStep a (newtonSeq a x₀ n)
+  exact newtonStep_ge_sqrt a
+    (newtonSeq a x₀ n) ha
+    (newtonSeq_pos a x₀ ha hx₀ n)
+
+-- Lemma 5: A Newton step decreases x when x >= sqrt(a).
+lemma newtonStep_le_self
+    (a x : ℝ) (ha : 0 < a)
+    (hx : Real.sqrt a ≤ x) :
+    newtonStep a x ≤ x := by
+  have hs : (Real.sqrt a)^2 = a :=
+    Real.sq_sqrt (le_of_lt ha)
+  have hx_pos : 0 < x :=
+    lt_of_lt_of_le (Real.sqrt_pos.2 ha) hx
+  have hsq : a ≤ x^2 := by
+    have h := mul_nonneg
+      (sub_nonneg.mpr hx)
+      (add_nonneg (le_of_lt hx_pos)
+        (Real.sqrt_nonneg a))
+    nlinarith [hs]
+  have hdiv : a / x ≤ x :=
+    (div_le_iff₀ hx_pos).2 (by nlinarith [hsq])
+  unfold newtonStep
+  linarith
+
+-- Lemma 6: Newton's sequence decreases after the first step.
+lemma newtonSeq_mono
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀)
+    (n : ℕ) :
+    newtonSeq a x₀ (n + 2) ≤
+      newtonSeq a x₀ (n + 1) := by
+  change newtonStep a (newtonSeq a x₀ (n + 1)) ≤
+    newtonSeq a x₀ (n + 1)
+  exact newtonStep_le_self a
+    (newtonSeq a x₀ (n + 1)) ha
+    (newtonSeq_ge_sqrt a x₀ ha hx₀ n)
+
+
 -- Main Theorem: Newton's method converges to sqrt(a).
 theorem newton_converges
     (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀) :
