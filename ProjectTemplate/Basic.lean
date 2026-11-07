@@ -1,3 +1,4 @@
+
 import Mathlib
 
 namespace NewtonSquareRoots
@@ -11,14 +12,41 @@ noncomputable def newtonSeq (a x₀ : ℝ) : ℕ → ℝ
   | 0 => x₀
   | n + 1 => newtonStep a (newtonSeq a x₀ n)
 
--- A Newton step preserves positivity.
+-- Lemma 1: A Newton step preserves positivity.
 lemma newtonStep_pos
     (a x : ℝ) (ha : 0 < a) (hx : 0 < x) :
     0 < newtonStep a x := by
   unfold newtonStep
   positivity
 
--- Main goal: Newton's method converges to sqrt(a).
+-- Lemma 2: Every Newton iterate remains positive.
+lemma newtonSeq_pos
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀) :
+    ∀ n : ℕ, 0 < newtonSeq a x₀ n := by
+  intro n
+  induction n with
+  | zero =>
+      exact hx₀
+  | succ n ih =>
+      change 0 < newtonStep a (newtonSeq a x₀ n)
+      exact newtonStep_pos a (newtonSeq a x₀ n) ha ih
+
+-- Lemma 3: One Newton step is at least sqrt(a).
+lemma newtonStep_ge_sqrt
+    (a x : ℝ) (ha : 0 < a) (hx : 0 < x) :
+    Real.sqrt a ≤ newtonStep a x := by
+  have hs : (Real.sqrt a)^2 = a :=
+    Real.sq_sqrt (le_of_lt ha)
+  have hid : newtonStep a x - Real.sqrt a =
+      (x - Real.sqrt a)^2 / (2 * x) := by
+    unfold newtonStep
+    field_simp
+    nlinarith [hs]
+  apply sub_nonneg.mp
+  rw [hid]
+  positivity
+
+-- Main Theorem: Newton's method converges to sqrt(a).
 theorem newton_converges
     (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀) :
     Filter.Tendsto (newtonSeq a x₀)
