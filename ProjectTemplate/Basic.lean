@@ -91,6 +91,33 @@ lemma newtonSeq_mono
     (newtonSeq_ge_sqrt a x₀ ha hx₀ n)
 
 
+
+-- Lemma 7: Exact error formula for one Newton step.
+lemma newtonStep_error
+    (a x : ℝ) (ha : 0 < a) (hx : 0 < x) :
+    newtonStep a x - Real.sqrt a =
+      (x - Real.sqrt a)^2 / (2 * x) := by
+  have hs : (Real.sqrt a)^2 = a :=
+    Real.sq_sqrt (le_of_lt ha)
+  unfold newtonStep
+  field_simp
+  nlinarith [hs]
+
+-- Lemma 8: Error formula for the Newton sequence.
+lemma newtonSeq_error
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀)
+    (n : ℕ) :
+    newtonSeq a x₀ (n + 1) - Real.sqrt a =
+      (newtonSeq a x₀ n - Real.sqrt a)^2 /
+        (2 * newtonSeq a x₀ n) := by
+  change newtonStep a (newtonSeq a x₀ n) -
+      Real.sqrt a =
+    (newtonSeq a x₀ n - Real.sqrt a)^2 /
+      (2 * newtonSeq a x₀ n)
+  exact newtonStep_error a (newtonSeq a x₀ n)
+    ha (newtonSeq_pos a x₀ ha hx₀ n)
+
+
 -- Main Theorem: Newton's method converges to sqrt(a).
 theorem newton_converges
     (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀) :
