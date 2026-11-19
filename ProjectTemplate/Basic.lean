@@ -118,11 +118,103 @@ lemma newtonSeq_error
     ha (newtonSeq_pos a x₀ ha hx₀ n)
 
 
+
+-- The error decreases by at least a factor of 1/2
+-- after the first iteration.
+lemma newton_error_half
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀)
+    (n : ℕ) :
+    newtonSeq a x₀ (n + 2) - Real.sqrt a ≤
+      (newtonSeq a x₀ (n + 1) - Real.sqrt a) / 2 := by
+  let x := newtonSeq a x₀ (n + 1)
+  have hx : 0 < x := by
+    exact newtonSeq_pos a x₀ ha hx₀ (n + 1)
+  have hbound : Real.sqrt a ≤ x := by
+    exact newtonSeq_ge_sqrt a x₀ ha hx₀ n
+  have herr :
+      newtonSeq a x₀ (n + 2) - Real.sqrt a =
+        (x - Real.sqrt a)^2 / (2 * x) := by
+    exact newtonSeq_error a x₀ ha hx₀ (n + 1)
+  rw [herr]
+  have hnonneg : 0 ≤ x - Real.sqrt a := sub_nonneg.mpr hbound
+  have hroot : 0 ≤ Real.sqrt a := Real.sqrt_nonneg a
+  have hprod :
+      0 ≤ (x - Real.sqrt a) * Real.sqrt a :=
+    mul_nonneg hnonneg hroot
+  apply (div_le_iff₀ (by positivity : 0 < 2 * x)).2
+  dsimp [x]
+  nlinarith
+
+  -- The error is bounded by a geometric sequence.
+lemma newton_error_bound
+    (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀)
+    (n : ℕ) :
+    newtonSeq a x₀ (n + 1) - Real.sqrt a ≤
+      (newtonSeq a x₀ 1 - Real.sqrt a) *
+        ((1 / 2 : ℝ) ^ n) := by
+  induction n with
+  | zero =>
+      simp
+  | succ n ih =>
+      calc
+        newtonSeq a x₀ (n + 2) - Real.sqrt a
+            ≤ (newtonSeq a x₀ (n + 1) -
+                Real.sqrt a) / 2 :=
+              newton_error_half a x₀ ha hx₀ n
+        _ ≤ ((newtonSeq a x₀ 1 - Real.sqrt a) *
+              ((1 / 2 : ℝ) ^ n)) / 2 := by
+              exact div_le_div_of_nonneg_right ih (by norm_num)
+        _ = (newtonSeq a x₀ 1 - Real.sqrt a) *
+              ((1 / 2 : ℝ) ^ (n + 1)) := by
+              rw [pow_succ]
+              ring
+
 -- Main Theorem: Newton's method converges to sqrt(a).
+-- Main theorem: Global convergence to sqrt(a).
 theorem newton_converges
     (a x₀ : ℝ) (ha : 0 < a) (hx₀ : 0 < x₀) :
     Filter.Tendsto (newtonSeq a x₀)
       Filter.atTop (nhds (Real.sqrt a)) := by
-  sorry
+
+  have hgeom :
+      Filter.Tendsto
+        (fun n : ℕ =>
+          (newtonSeq a x₀ 1 - Real.sqrt a) *
+            ((1 / 2 : ℝ) ^ n))
+        Filter.atTop (nhds 0) := by
+    have hpow :
+        Filter.Tendsto
+          (fun n : ℕ => (1 / 2 : ℝ) ^ n)
+          Filter.atTop (nhds 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one
+        (by norm_num) (by norm_num)
+    convert Filter.Tendsto.mul
+      tendsto_const_nhds hpow using 1 <;> simp
+
+  have herror :
+      Filter.Tendsto
+        (fun n : ℕ =>
+          newtonSeq a x₀ (n + 1) - Real.sqrt a)
+        Filter.atTop (nhds 0) := by
+    apply squeeze_zero
+    · intro n
+      exact sub_nonneg.mpr
+        (newtonSeq_ge_sqrt a x₀ ha hx₀ n)
+    · intro n
+      exact newton_error_bound a x₀ ha hx₀ n
+    · exact hgeom
+
+  have hshift :
+      Filter.Tendsto
+        (fun n : ℕ => newtonSeq a x₀ (n + 1))
+        Filter.atTop (nhds (Real.sqrt a)) := by
+    have h := herror.add
+      (tendsto_const_nhds :
+        Filter.Tendsto
+          (fun _ : ℕ => Real.sqrt a)
+          Filter.atTop (nhds (Real.sqrt a)))
+    convert h using 1 <;> simp
+
+  exact (Filter.tendsto_add_atTop_iff_nat 1).mp hshift
 
 end NewtonSquareRoots
