@@ -1,67 +1,70 @@
-# ProjectTemplate
+# Formalizing the Convergence of Newton's Method for Square Roots
 
-A template for Lean 4 projects that depend on [Mathlib](https://github.com/leanprover-community/mathlib4).
+**CMU 21-321: Interactive Theorem Proving — Fall 2026**
 
-## Prerequisites
+## Project Overview
 
-Install Lean via [elan](https://github.com/leanprover/elan) (see the
-[Lean installation guide](https://lean-lang.org/install/)). The correct Lean version is
-picked up automatically from `lean-toolchain`.
+This project formalizes the convergence of Newton's method for computing square roots using Lean 4 and Mathlib.
 
-## 1. Rename the project
+For a positive real number \(a\) and an initial guess \(x_0>0\), Newton's method generates the sequence
 
-After creating your repository from this template, rename it from `ProjectTemplate` to your
-own project name:
+\[
+x_{n+1}=\frac{1}{2}\left(x_n+\frac{a}{x_n}\right).
+\]
 
-```bash
-./customize.sh MyProject
-```
+The main objective is to formally prove that this sequence converges to the positive square root of \(a\), regardless of the choice of positive initial value.
 
-This updates `lakefile.toml`, `lake-manifest.json`, the Lean imports and this README's title, and
-renames `ProjectTemplate.lean` and `ProjectTemplate/` to `MyProject.lean` and `MyProject/`.
-The name must be a valid Lean module name (letters, digits and underscores, starting with a
-letter; UpperCamelCase is conventional). Commit the result, then delete `customize.sh`.
+## Main Theorem
 
-## 2. Get the Mathlib cache
+For any \(a>0\) and \(x_0>0\), the Newton iteration satisfies
 
-Compiling Mathlib from source takes hours, so download the prebuilt files instead:
+\[
+\lim_{n\to\infty}x_n=\sqrt{a}.
+\]
+
+The main theorem is formalized in Lean as `newton_converges`.
+
+## Proof Strategy
+
+The formalization builds toward the main theorem through several supporting results:
+
+- **Positivity:** Every iterate remains strictly positive.
+- **Lower bound:** After the first iteration, all subsequent iterates are at least \(\sqrt a\).
+- **Monotonicity:** The sequence is nonincreasing after the first iteration.
+- **Error identity:** The iteration satisfies
+
+  \[
+  x_{n+1}-\sqrt a
+  =\frac{(x_n-\sqrt a)^2}{2x_n}.
+  \]
+
+- **Geometric error bound:** For every \(n\geq0\),
+
+  \[
+  0\leq x_{n+1}-\sqrt a
+  \leq 2^{-n}(x_1-\sqrt a).
+  \]
+
+The geometric error bound approaches zero, allowing us to establish convergence using the squeeze theorem.
+
+## Lean Formalization
+
+The main Lean development is located in:
+
+`ProjectTemplate/Basic.lean`
+
+The file contains the Newton iteration definitions, supporting lemmas, and the main convergence theorem.
+
+The project uses Lean 4 and Mathlib.
+
+## Building the Project
+
+From the repository root, run:
 
 ```bash
 lake exe cache get
-```
-
-Re-run this whenever you change the Mathlib version (or if your editor starts rebuilding
-Mathlib files).
-
-## 3. Build and work on the project
-
-```bash
 lake build
 ```
 
-- Put your Lean files under `MyProject/` and import each one from `MyProject.lean`, so that
-  `lake build` (and CI) checks them.
-- Open the repository folder (not a single file) in VS Code with the Lean 4 extension.
+A successful build verifies that the Lean source files compile.
 
-## Updating Mathlib
-
-Change the `rev` under `[[require]]` in `lakefile.toml` to the new Mathlib tag, and set
-`lean-toolchain` to match. Then run:
-
-```bash
-lake update mathlib
-lake exe cache get
-lake build
-```
-
-Alternatively, run the **Update Dependencies** workflow from the GitHub *Actions* tab: it
-opens a pull request if the update builds, or an issue if it doesn't. (Uncomment the
-`schedule` block in `.github/workflows/update.yml` to run it automatically.)
-
-## GitHub setup
-
-- **CI**: every push and pull request is built by `.github/workflows/lean_action_ci.yml`.
-- To let the update workflow open pull requests, go to **Settings → Actions → General** and
-  tick **Allow GitHub Actions to create and approve pull requests**.
-- To publish docs to GitHub Pages, set **Settings → Pages → Source** to "GitHub Actions" and
-  uncomment the `docgen-action` line in `lean_action_ci.yml`.
